@@ -171,12 +171,21 @@ struct Controls: View {
                 if !model.hasPermission {
                     Button { model.openPrivacy() } label:{Image(systemName:"gearshape")}.help("Open Screen Recording settings")
                 }
+                Button("Quit") { NSApp.terminate(nil) }.help("Quit Mac Duo")
             }
             HStack(spacing:5) {
                 Text(model.previewPlaying ? "Replaying" : (model.followLid ? "Live preview" : "Manual preview"))
                 Text("·")
                 Image(systemName:"escape");Text("to pause");Text("·");Text("⌃⌥⌘F anywhere")
                 Spacer()
+                Toggle("Menu bar icon",isOn:$model.showInMenuBar)
+                    .toggleStyle(.checkbox).controlSize(.mini)
+                    .help("Show the Mac Duo icon in the menu bar. With it hidden, open Mac Duo from Applications or Spotlight to bring this window back.")
+                Text("·")
+                Toggle("Open at login",isOn:Binding(get:{model.launchAtLogin},set:{model.setLaunchAtLogin($0)}))
+                    .toggleStyle(.checkbox).controlSize(.mini)
+                    .help("Start Mac Duo when you log in. It opens paused; following begins when you enable it.")
+                Text("·")
                 if model.reducedMotion { Text("Reduce Motion on");Text("·") }
                 Text("On your Mac only").foregroundStyle(accent.opacity(0.85))
             }.font(.system(size:10)).foregroundStyle(.secondary)

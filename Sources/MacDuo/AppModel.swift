@@ -6,6 +6,7 @@ import FoldCore
 import ScreenCaptureKit
 import OSLog
 import IOKit.ps
+import ServiceManagement
 
 final class OverlayPanel: NSPanel {
     override var canBecomeKey: Bool { false }
@@ -45,6 +46,15 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         didSet {
             UserDefaults.standard.set(appearance.rawValue,forKey:"appearance")
             NSApp.appearance = appearance.native
+        }
+    }
+    /// The menu bar icon is optional. Hiding it never changes following or capture;
+    /// reopening Mac Duo from Applications or Spotlight always restores this window.
+    @Published var showInMenuBar = UserDefaults.standard.object(forKey:"showInMenuBar") as? Bool ?? true {
+        didSet {
+            guard oldValue != showInMenuBar else { return }
+            UserDefaults.standard.set(showInMenuBar,forKey:"showInMenuBar")
+            menuBarVisibilityChanged?(showInMenuBar)
         }
     }
     /// Choosing an effect only saves and redraws. It never starts a full-screen demo.
@@ -121,6 +131,29 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     private var presentedFrames = 0
     var showWindow: (() -> Void)?
     var overlayVisibilityChanged: ((Bool) -> Void)?
+    var menuBarVisibilityChanged: ((Bool) -> Void)?
+
+    /// Login registration lives in the system, not in our preferences. The switch
+    /// reports what macOS actually holds, so a rejected change cannot show as applied.
+    @Published private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
+
+    func setLaunchAtLogin(_ on: Bool) {
+        guard on != launchAtLogin else { return }
+        do {
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            logger.notice("Open at login requested: \(on,privacy:.public)")
+        } catch {
+            status = "Could not change Open at login: \(error.localizedDescription)"
+            logger.error("Open at login failed: \(error.localizedDescription,privacy:.public)")
+        }
+        refreshLaunchAtLogin()
+    }
+
+    /// The user can also remove Mac Duo in System Settings. Re-read before showing the state.
+    func refreshLaunchAtLogin() {
+        let actual = SMAppService.mainApp.status == .enabled
+        if launchAtLogin != actual { launchAtLogin = actual }
+    }
 
     init() {
         NSApp.appearance = appearance.native
