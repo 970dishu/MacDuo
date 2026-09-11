@@ -18,6 +18,7 @@ final class OverlayPanel: NSPanel {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
     private var file: AVAudioFile?
+    private var fadeTimer: Timer?
 
     init() {
         guard let url = Bundle.module.url(forResource:"Door",withExtension:"aif"),
@@ -30,6 +31,8 @@ final class OverlayPanel: NSPanel {
 
     func start() {
         guard let file, !player.isPlaying else { return }
+        fadeTimer?.invalidate();fadeTimer = nil
+        player.volume = 1
         do {
             if !engine.isRunning { try engine.start() }
             player.scheduleFile(file,at:nil)
@@ -37,7 +40,31 @@ final class OverlayPanel: NSPanel {
         } catch {}
     }
 
-    func stop() { player.stop() }
+    func fadeOut(duration: TimeInterval = 0.18) {
+        guard player.isPlaying else { return }
+        fadeTimer?.invalidate()
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let initialVolume = player.volume
+        fadeTimer = Timer.scheduledTimer(withTimeInterval:0.02,repeats:true) { [weak self] timer in
+            MainActor.assumeIsolated {
+                guard let self else { timer.invalidate(); return }
+                let progress = min(1,(ProcessInfo.processInfo.systemUptime - startedAt) / duration)
+                self.player.volume = initialVolume * Float(1 - progress)
+                if progress >= 1 {
+                    timer.invalidate()
+                    self.fadeTimer = nil
+                    self.player.stop()
+                    self.player.volume = 1
+                }
+            }
+        }
+    }
+
+    func stop() {
+        fadeTimer?.invalidate();fadeTimer = nil
+        player.stop()
+        player.volume = 1
+    }
 }
 
 enum AppAppearance: String, CaseIterable, Identifiable {
@@ -228,7 +255,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         lidSoundStopTimer?.invalidate()
         lidSoundStopTimer = Timer.scheduledTimer(withTimeInterval:0.2,repeats:false) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.lidSound.stop()
+                self?.lidSound.fadeOut()
                 self?.lidSoundStopTimer = nil
             }
         }
