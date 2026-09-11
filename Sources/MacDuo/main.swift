@@ -40,6 +40,8 @@ import OSLog
         statusItem.button?.image = AppBrand.menuBarMark
         statusItem.button?.toolTip = "Mac Duo — your desktop follows your lid"
         let menu = NSMenu();menu.delegate = self;statusItem.menu = menu
+        statusItem.isVisible = model.showInMenuBar
+        model.menuBarVisibilityChanged = { [weak self] visible in self?.statusItem.isVisible = visible }
         let appMenu = NSMenu()
         let appItem = NSMenuItem();appMenu.addItem(appItem)
         let submenu = NSMenu();submenu.addItem(effectItem());submenu.addItem(appearanceItem());submenu.addItem(updateItem());submenu.addItem(.separator())
@@ -97,7 +99,7 @@ import OSLog
             logger.notice("Settings level changed; elevated: \(elevated,privacy:.public); app active: \(NSApp.isActive,privacy:.public).")
         }
     }
-    func applicationDidBecomeActive(_ notification: Notification) { updateSettingsLevel() }
+    func applicationDidBecomeActive(_ notification: Notification) { updateSettingsLevel();model.refreshLaunchAtLogin() }
     func applicationDidResignActive(_ notification: Notification) { window?.level = .normal }
     func windowDidBecomeKey(_ notification: Notification) { updateSettingsLevel() }
     func windowDidResignKey(_ notification: Notification) { window?.level = .normal }
@@ -118,6 +120,13 @@ import OSLog
         item.target = self;item.isEnabled = !updater.isBusy
         item.image = NSImage(systemSymbolName:"arrow.triangle.2.circlepath",accessibilityDescription:nil)
         return item
+    }
+    @objc private func toggleLaunchAtLogin() { model.setLaunchAtLogin(!model.launchAtLogin) }
+    // Reachable only while the icon is visible, so this always hides in practice.
+    // Show the window as the icon leaves, keeping the switch that restores it on screen.
+    @objc private func toggleMenuBarIcon() {
+        model.showInMenuBar.toggle()
+        if !model.showInMenuBar { showSettings() }
     }
     @objc private func setAppearance(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
@@ -166,6 +175,7 @@ import OSLog
             return
         }
         menu.removeAllItems()
+        model.refreshLaunchAtLogin()
         let state = NSMenuItem(title:model.lidAngle.map{String(format:"Lid angle: %.0f°",$0)} ?? "Sensor unavailable",action:nil,keyEquivalent:"")
         state.isEnabled = false;menu.addItem(state)
         menu.addItem(.separator())
@@ -175,6 +185,12 @@ import OSLog
         menu.addItem(effectItem())
         menu.addItem(appearanceItem())
         menu.addItem(updateItem())
+        let icon = menu.addItem(withTitle:"Show menu bar icon",action:#selector(toggleMenuBarIcon),keyEquivalent:"")
+        icon.target = self
+        icon.state = model.showInMenuBar ? .on : .off
+        let login = menu.addItem(withTitle:"Open at login",action:#selector(toggleLaunchAtLogin),keyEquivalent:"")
+        login.target = self
+        login.state = model.launchAtLogin ? .on : .off
         menu.addItem(.separator())
         menu.addItem(withTitle:"Quit Mac Duo",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
     }
