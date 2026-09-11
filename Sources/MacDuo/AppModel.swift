@@ -234,6 +234,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
                 thermalPressure:info.thermalState == .serious || info.thermalState == .critical,moving:true)
             if fps != rate {
                 fps = rate
+                sensor.setPollingRate(rate)
                 logger.notice("Motion refresh cap: \(rate) Hz; capture stays at most 60 Hz.")
             }
         }
