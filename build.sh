@@ -17,12 +17,22 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/MacDuo" "$APP/Contents/MacOS/MacDuo"
 # Remove debug symbols containing local build paths before signing the app.
 xcrun strip -S "$APP/Contents/MacOS/MacDuo"
+# L10n loads this resource bundle from the packaged app Resources directory.
+# Ship translations inside the app so it remains relocatable.
+ditto --norsrc --noextattr "$BIN_DIR/MacDuo_MacDuo.bundle" "$APP/Contents/Resources/MacDuo_MacDuo.bundle"
+for localization in Sources/MacDuo/Resources/*.lproj; do
+  locale="$(basename "$localization")"
+  mkdir -p "$APP/Contents/Resources/$locale"
+  cp "$localization/InfoPlist.strings" "$APP/Contents/Resources/$locale/InfoPlist.strings"
+done
 cp Resources/MacDuoMark.png Resources/MacDuo.icns "$APP/Contents/Resources/"
 cp ATTRIBUTION.md "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string><string>ja</string></array>
 <key>CFBundleName</key><string>Mac Duo</string>
 <key>CFBundleDisplayName</key><string>Mac Duo</string>
 <key>CFBundleIdentifier</key><string>local.lidflow.mac</string>

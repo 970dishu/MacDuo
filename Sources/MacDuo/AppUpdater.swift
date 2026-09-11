@@ -5,29 +5,29 @@ import FoldCore
 /// One request only when the user asks. No scheduled checks, analytics, or updater daemon.
 @MainActor final class AppUpdater: ObservableObject {
     @Published private(set) var isBusy = false
-    @Published private(set) var buttonTitle = "Check for updates"
+    @Published private(set) var buttonTitle = L10n.text("Check for updates")
     private let releases = URL(string:"https://github.com/DhananjayBhosale/MacDuo/releases/latest")!
 
     func checkForUpdates() {
         guard !isBusy else { return }
-        isBusy = true;buttonTitle = "Checking…"
+        isBusy = true;buttonTitle = L10n.text("Checking…")
         Task {
-            defer { isBusy = false;buttonTitle = "Check for updates" }
+            defer { isBusy = false;buttonTitle = L10n.text("Check for updates") }
             do {
                 guard let update = try await Self.findUpdate() else {
-                    show("You’re up to date",message:"Mac Duo \(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "") is the latest stable release.")
+                    show(L10n.text("You’re up to date"),message:L10n.format("Mac Duo %@ is the latest stable release.",Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? ""))
                     return
                 }
                 let alert = NSAlert()
-                alert.messageText = "Mac Duo \(update.tag) is available"
-                alert.informativeText = "Download, verify, and install the update, then reopen Mac Duo. Your settings will be kept. macOS may ask you to allow the updated app or Screen Recording again."
-                alert.addButton(withTitle:"Install & Relaunch")
-                alert.addButton(withTitle:"Later")
-                alert.addButton(withTitle:"View release")
+                alert.messageText = L10n.format("Mac Duo %@ is available",update.tag)
+                alert.informativeText = L10n.text("Download, verify, and install the update, then reopen Mac Duo. Your settings will be kept. macOS may ask you to allow the updated app or Screen Recording again.")
+                alert.addButton(withTitle:L10n.text("Install & Relaunch"))
+                alert.addButton(withTitle:L10n.text("Later"))
+                alert.addButton(withTitle:L10n.text("View release"))
                 NSApp.activate(ignoringOtherApps:true)
                 switch alert.runModal() {
                 case .alertFirstButtonReturn:
-                    buttonTitle = "Updating…"
+                    buttonTitle = L10n.text("Updating…")
                     let destination = try UpdateInstallation.installLocation()
                     let archive = try await UpdateDownload.fetch(update.archive,maximum:ReleaseUpdate.maximumArchiveBytes)
                     guard archive.count == update.archiveSize else { throw UpdateError.invalid("The installer download was incomplete. Please try again.") }
@@ -43,9 +43,9 @@ import FoldCore
                 }
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "Mac Duo could not update"
-                alert.informativeText = error.localizedDescription
-                alert.addButton(withTitle:"OK");alert.addButton(withTitle:"Open downloads")
+                alert.messageText = L10n.text("Mac Duo could not update")
+                alert.informativeText = L10n.text(error.localizedDescription)
+                alert.addButton(withTitle:L10n.text("OK"));alert.addButton(withTitle:L10n.text("Open downloads"))
                 NSApp.activate(ignoringOtherApps:true)
                 if alert.runModal() == .alertSecondButtonReturn { NSWorkspace.shared.open(releases) }
             }
@@ -371,11 +371,11 @@ enum UpdateInstallation {
         while true {
             if FileManager.default.fileExists(atPath:ready.path) { return true }
             let alert = NSAlert()
-            alert.messageText = "macOS could not open the update"
-            alert.informativeText = "Your previous Mac Duo is safely backed up. If macOS blocked this downloaded app, go to System Settings → Privacy & Security → Open Anyway, approve Mac Duo there, then try opening it again. You can restore the previous version at any time.\n\n\(error.localizedDescription)"
-            alert.addButton(withTitle:"Restore Previous")
-            alert.addButton(withTitle:"Open Privacy & Security")
-            alert.addButton(withTitle:"Try Opening Again")
+            alert.messageText = L10n.text("macOS could not open the update")
+            alert.informativeText = L10n.format("Your previous Mac Duo is safely backed up. If macOS blocked this downloaded app, go to System Settings → Privacy & Security → Open Anyway, approve Mac Duo there, then try opening it again. You can restore the previous version at any time.\n\n%@",L10n.text(error.localizedDescription))
+            alert.addButton(withTitle:L10n.text("Restore Previous"))
+            alert.addButton(withTitle:L10n.text("Open Privacy & Security"))
+            alert.addButton(withTitle:L10n.text("Try Opening Again"))
             // This timer exists only inside this explicit recovery dialog. It recognizes
             // a launch approved in System Settings, then stops immediately with the dialog.
             let timer = Timer(timeInterval:0.5,repeats:true) { _ in
@@ -423,7 +423,7 @@ enum UpdateInstallation {
         let timeout = Date().addingTimeInterval(60)
         while !responded, Date() < timeout { RunLoop.current.run(until:Date().addingTimeInterval(0.1)) }
         if let launchError { throw launchError }
-        guard let application else { throw UpdateError.invalid("macOS could not open the update. Please install the downloaded app with Finder.") }
+        guard let application else { throw UpdateError.invalid(L10n.text("macOS could not open the update. Please install the downloaded app with Finder.")) }
         while !application.isTerminated, !FileManager.default.fileExists(atPath:ready.path), Date() < timeout {
             RunLoop.current.run(until:Date().addingTimeInterval(0.1))
         }
@@ -554,13 +554,13 @@ enum UpdateInstallation {
                 try? Data("ready".utf8).write(to:job.folder.appendingPathComponent("ready"),options:.atomic)
         }
         if CommandLine.arguments.contains("--update-rolled-back") {
-            let alert = NSAlert();alert.messageText = "The previous Mac Duo was restored"
-            alert.informativeText = "The update could not finish opening. You can keep using this version or install the latest release from GitHub."
+            let alert = NSAlert();alert.messageText = L10n.text("The previous Mac Duo was restored")
+            alert.informativeText = L10n.text("The update could not finish opening. You can keep using this version or install the latest release from GitHub.")
             NSApp.activate(ignoringOtherApps:true);alert.runModal()
         }
         if CommandLine.arguments.contains("--update-needs-recovery") {
-            let alert = NSAlert();alert.messageText = "Mac Duo kept your previous app safe"
-            alert.informativeText = "A file permission or disk error prevented the update from finishing. Your previous app is at:\n\(Bundle.main.bundleURL.path)\nMove it back to Applications with Finder."
+            let alert = NSAlert();alert.messageText = L10n.text("Mac Duo kept your previous app safe")
+            alert.informativeText = L10n.format("A file permission or disk error prevented the update from finishing. Your previous app is at:\n%@\nMove it back to Applications with Finder.",Bundle.main.bundleURL.path)
             NSApp.activate(ignoringOtherApps:true);alert.runModal()
         }
     }

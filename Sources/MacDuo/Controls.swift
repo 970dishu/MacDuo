@@ -78,7 +78,7 @@ struct Controls: View {
                 .accessibilityHidden(true)
             VStack(alignment:.leading,spacing:5) {
                 Text("Mac Duo").font(.system(size:27,weight:.semibold,design:.rounded))
-                Text("Let your desktop follow the fold.").font(.system(size:12)).foregroundStyle(.secondary)
+                Text(L10n.text("Let your desktop follow the fold.")).font(.system(size:12)).foregroundStyle(.secondary)
             }
             Spacer()
             Button { updater.checkForUpdates() } label: {
@@ -90,11 +90,11 @@ struct Controls: View {
             .accessibilityLabel(updater.buttonTitle).help(updater.buttonTitle)
             HStack(spacing:6) {
                 Circle().fill(model.sensorAvailable ? accent : .orange).frame(width:6,height:6)
-                Text(model.lidAngle.map { String(format:"Lid %.0f°",$0) } ?? "Looking for sensor")
+                Text(model.lidAngle.map { L10n.format("Lid %.0f°",$0) } ?? L10n.text("Looking for sensor"))
                     .font(.system(size:12,weight:.medium,design:.monospaced))
             }.padding(.horizontal,12).padding(.vertical,8).background(.primary.opacity(0.055),in:Capsule())
             Menu {
-                Picker("Appearance",selection:$model.appearance) {
+                Picker(L10n.text("Appearance"),selection:$model.appearance) {
                     ForEach(AppAppearance.allCases) { appearance in
                         Label(appearance.title,systemImage:appearance.symbol).tag(appearance)
                     }
@@ -103,7 +103,7 @@ struct Controls: View {
                 Image(systemName:model.appearance.symbol).font(.system(size:16)).frame(width:28,height:28)
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .accessibilityLabel("Appearance").help("Appearance: \(model.appearance.title)")
+            .accessibilityLabel(L10n.text("Appearance")).help(L10n.format("Appearance: %@",model.appearance.title))
         }
     }
 
@@ -126,40 +126,40 @@ struct Controls: View {
     /// spacing keeps the panel exactly as tall as before, so nothing scrolls and
     /// the MacBook and the panel still align at top and bottom.
     private var effectPicker: some View {
-        Picker("Effect",selection:$model.effect) {
-            ForEach(FoldEffect.allCases) { effect in Text(effect.title).tag(effect) }
+        Picker(L10n.text("Effect"),selection:$model.effect) {
+            ForEach(FoldEffect.allCases) { effect in Text(L10n.text(effect.title)).tag(effect) }
         }
         .pickerStyle(.segmented).labelsHidden().controlSize(.small)
         .font(.system(size:11,weight:.medium))
         .frame(height:19)
-        .accessibilityLabel("Effect")
-        .help("Effect: \(model.effect.title) — \(model.effect.summary)")
+        .accessibilityLabel(L10n.text("Effect"))
+        .help(L10n.format("Effect: %@ — %@",L10n.text(model.effect.title),L10n.text(model.effect.summary)))
     }
 
     private var settings: some View {
         VStack(alignment:.leading,spacing:10) {
             effectPicker
-            Toggle("Follow my lid",isOn:$model.followLid)
+            Toggle(L10n.text("Follow my lid"),isOn:$model.followLid)
                 .toggleStyle(.switch).controlSize(.small).font(.system(size:11.5,weight:.medium))
-            slider("Preview angle",value:Binding(get:{model.followLid ? model.lidAngle ?? model.clearAngle : model.previewAngle},
+            slider(L10n.text("Preview angle"),value:Binding(get:{model.followLid ? model.lidAngle ?? model.clearAngle : model.previewAngle},
                                                set:{model.previewAngle = $0}),range:5...140,
                    text:model.followLid ? model.lidAngle.map { String(format:"%.0f°",$0) } ?? "—"
                                         : String(format:"%.0f°",model.previewAngle))
                 .disabled(model.followLid || model.previewPlaying)
             Divider()
-            slider("Clears at",value:$model.clearAngle,range:60...140,text:String(format:"%.0f°",model.clearAngle))
+            slider(L10n.text("Clears at"),value:$model.clearAngle,range:60...140,text:String(format:"%.0f°",model.clearAngle))
             VStack(alignment:.leading,spacing:6) {
-                Toggle("Clear when the lid is still",isOn:$model.clearWhenStill)
+                Toggle(L10n.text("Clear when the lid is still"),isOn:$model.clearWhenStill)
                     .toggleStyle(.switch).controlSize(.small).font(.system(size:11.5,weight:.medium))
-                slider("Clear after",value:$model.stillnessDelay,range:1...5,text:String(format:"%.0f s",model.stillnessDelay),step:1)
+                slider(L10n.text("Clear after"),value:$model.stillnessDelay,range:1...5,text:L10n.format("%.0f s",model.stillnessDelay),step:1)
                     .disabled(!model.clearWhenStill)
-                Text("Move the lid to bring back the effect.")
+                Text(L10n.text("Move the lid to bring back the effect."))
                     .font(.system(size:11)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
             }
             Divider()
-            slider("Perspective",value:$model.perspective,range:0...1,text:percent(model.perspective))
-            slider("Softness",value:$model.blur,range:0...1,text:percent(model.blur))
-            slider("Shadow",value:$model.shadow,range:0...1,text:percent(model.shadow))
+            slider(L10n.text("Perspective"),value:$model.perspective,range:0...1,text:percent(model.perspective))
+            slider(L10n.text("Softness"),value:$model.blur,range:0...1,text:percent(model.blur))
+            slider(L10n.text("Shadow"),value:$model.shadow,range:0...1,text:percent(model.shadow))
         }
         .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
         .padding(16).background(.primary.opacity(0.035),in:RoundedRectangle(cornerRadius:16))
@@ -169,35 +169,35 @@ struct Controls: View {
         VStack(alignment:.leading,spacing:8) {
             Divider()
             HStack(spacing:8) {
-                Button(model.checkingPermission ? "Checking…" : (model.enabled ? "Pause Mac Duo" : "Enable Mac Duo")) {
+                Button(model.checkingPermission ? L10n.text("Checking…") : (model.enabled ? L10n.text("Pause Mac Duo") : L10n.text("Enable Mac Duo"))) {
                     if model.enabled { model.pause() } else { model.enable() }
                 }.disabled(model.checkingPermission).buttonStyle(.borderedProminent).tint(accent)
-                Button(model.demoRunning ? "Testing…" : "Test desktop · 8 sec") { model.testDesktop() }
+                Button(model.demoRunning ? L10n.text("Testing…") : L10n.text("Test desktop · 8 sec")) { model.testDesktop() }
                     .disabled(model.demoRunning || model.checkingPermission)
-                Button { model.playPreview() } label: { Image(systemName:"play.fill");Text("Replay") }
+                Button { model.playPreview() } label: { Image(systemName:"play.fill");Text(L10n.text("Replay")) }
                     .disabled(model.previewPlaying)
                 Text(model.status).font(.system(size:11)).foregroundStyle(.secondary)
                     .lineLimit(2).help(model.status).frame(maxWidth:.infinity,alignment:.trailing)
                 if !model.hasPermission {
-                    Button { model.openPrivacy() } label:{Image(systemName:"gearshape")}.help("Open Screen Recording settings")
+                    Button { model.openPrivacy() } label:{Image(systemName:"gearshape")}.help(L10n.text("Open Screen Recording settings"))
                 }
-                Button("Quit") { NSApp.terminate(nil) }.help("Quit Mac Duo")
+                Button(L10n.text("Quit")) { NSApp.terminate(nil) }.help(L10n.text("Quit Mac Duo"))
             }
             HStack(spacing:5) {
-                Text(model.previewPlaying ? "Replaying" : (model.followLid ? "Live preview" : "Manual preview"))
+                Text(model.previewPlaying ? L10n.text("Replaying") : (model.followLid ? L10n.text("Live preview") : L10n.text("Manual preview")))
                 Text("·")
-                Image(systemName:"escape");Text("to pause");Text("·");Text("⌃⌥⌘F anywhere")
+                Image(systemName:"escape");Text(L10n.text("to pause"));Text("·");Text(L10n.text("⌃⌥⌘F anywhere"))
                 Spacer()
-                Toggle("Menu bar icon",isOn:$model.showInMenuBar)
+                Toggle(L10n.text("Menu bar icon"),isOn:$model.showInMenuBar)
                     .toggleStyle(.checkbox).controlSize(.mini)
-                    .help("Show the Mac Duo icon in the menu bar. With it hidden, open Mac Duo from Applications or Spotlight to bring this window back.")
+                    .help(L10n.text("Show the Mac Duo icon in the menu bar. With it hidden, open Mac Duo from Applications or Spotlight to bring this window back."))
                 Text("·")
-                Toggle("Open at login",isOn:Binding(get:{model.launchAtLogin},set:{model.setLaunchAtLogin($0)}))
+                Toggle(L10n.text("Open at login"),isOn:Binding(get:{model.launchAtLogin},set:{model.setLaunchAtLogin($0)}))
                     .toggleStyle(.checkbox).controlSize(.mini)
-                    .help("Start Mac Duo when you log in. It opens paused; following begins when you enable it.")
+                    .help(L10n.text("Start Mac Duo when you log in. It opens paused; following begins when you enable it."))
                 Text("·")
-                if model.reducedMotion { Text("Reduce Motion on");Text("·") }
-                Text("On your Mac only").foregroundStyle(accent.opacity(0.85))
+                if model.reducedMotion { Text(L10n.text("Reduce Motion on"));Text("·") }
+                Text(L10n.text("On your Mac only")).foregroundStyle(accent.opacity(0.85))
             }.font(.system(size:10)).foregroundStyle(.secondary)
         }
     }
