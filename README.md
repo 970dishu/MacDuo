@@ -27,11 +27,11 @@
 
 <p><a href="https://macduo.dhananjaytech.app/#effects"><img src="docs/assets/roll.jpg" alt="Roll effect" width="24%"> <img src="docs/assets/shutter.jpg" alt="Shutter effect" width="24%"> <img src="docs/assets/flex.jpg" alt="Flex effect" width="24%"> <img src="docs/assets/iris.jpg" alt="Iris effect" width="24%"></a></p>
 
-Hold the lid still and the screen clears after **1–5 seconds**—**2 seconds** by default. Live preview, compact floating controls, orange Light/Dark themes, and menu-bar access are included. Close settings or switch desktops: Mac Duo keeps following in the background, without raising its window. Press **Esc** or **⌃⌥⌘F** to pause.
+Hold the lid still and the screen clears after **1–5 seconds**—**2 seconds** by default. Live preview, compact floating controls, orange Light/Dark themes, menu-bar access and an opt-in **Open at login** setting are included. Login launches start paused. The menu-bar icon stays visible by default but can be hidden. Close settings or switch desktops: Mac Duo keeps following in the background, without raising its window. Press **Esc** or **⌃⌥⌘F** to pause.
 
 ## Install
 
-**Mac Duo 0.1.12 supports macOS 13 Ventura or newer**, with six effects including Ghost. A compatible lid sensor is required. Built for macOS 13 and tested on a newer M4 Mac; physical Ventura testing is still pending.
+**Mac Duo 0.1.13 supports macOS 13 Ventura or newer**, with six effects including Ghost. A compatible lid sensor is required. Built for macOS 13 and tested on a newer M4 Mac; physical Ventura testing is still pending.
 
 > [!NOTE]
 > **MacBook compatibility · macOS 13+**<br>

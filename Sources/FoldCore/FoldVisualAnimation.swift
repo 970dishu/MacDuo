@@ -51,6 +51,7 @@ public struct FoldVisualAnimation {
     private var lastTime: TimeInterval?
     private var clearStart: TimeInterval?
     private var clearFrom: FoldVisualState = .clear
+    private var tiltVelocity = 0.0
 
     public init() {}
     public mutating func reset() { self = Self() }
@@ -63,6 +64,7 @@ public struct FoldVisualAnimation {
         let dt = lastTime.map { min(0.1,max(0,now-$0)) } ?? 0
         lastTime = now
         if let start = clearStart {
+            tiltVelocity = 0
             let t = min(1,max(0,(now-start)/Self.clearDuration))
             let remaining = 1-FoldVisualState.ease(t)
             value = .init(progress:clearFrom.progress*remaining,defocus:clearFrom.defocus*remaining,
@@ -76,7 +78,7 @@ public struct FoldVisualAnimation {
             return value
         }
         if target.isClear {
-            if !value.isClear { clearFrom = value; clearStart = now }
+            if !value.isClear { clearFrom = value; clearStart = now; tiltVelocity = 0 }
             return value
         }
         let mix = 1-exp(-dt/0.045)
@@ -88,11 +90,23 @@ public struct FoldVisualAnimation {
         value.progress += (target.progress-value.progress)*mix
         value.defocus += (target.defocus-value.defocus)*mix
         value.coverage += (target.coverage-value.coverage)*mix
-        // Counter-rotation must stay close to the physical panel. A slower
-        // response makes the desktop appear attached to the moving lid.
-        // Optical softening keeps its gentler response and clearing clock.
-        value.tilt += (target.tilt-value.tilt)*tiltMix
-        if value.isNear(target) { value = target }
+        // The sensor reports whole degrees, so a single-pole response exposes
+        // each report as a visible step. This exact critically damped response
+        // spreads the step across frames while staying close to the panel.
+        let omega = 1/0.010
+        let error = value.tilt-target.tilt
+        let coupling = tiltVelocity+omega*error
+        let decay = exp(-omega*dt)
+        let nextError = (error+coupling*dt)*decay
+        let nextVelocity = (tiltVelocity-omega*coupling*dt)*decay
+        if (error < 0 && nextError > 0) || (error > 0 && nextError < 0) {
+            value.tilt = target.tilt
+            tiltVelocity = 0
+        } else {
+            value.tilt = target.tilt+nextError
+            tiltVelocity = nextVelocity
+        }
+        if value.isNear(target) { value = target; tiltVelocity = 0 }
         return value
     }
 }

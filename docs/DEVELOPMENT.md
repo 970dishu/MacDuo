@@ -39,11 +39,13 @@ swift build
 
 The render check uses generated artwork only; it does not capture the desktop. It verifies all six effects: pixel identity when open/reopened, black closure, opacity, blur, practical geometry, distinct intermediate frames, smooth onset, Reduce Motion, cache freshness and GPU timing. Add `--animation` to export generated closing/reopening frames for every effect. GPU measurements exclude capture and display composition. Physical lid sweeps, sustained energy use and platform lifecycle transitions still need testing on more hardware.
 
-## Unreleased 0.1.13
+## Version 0.1.13
 
-Ghost transforms a fixed keyboard-space viewer into the resting screen plane using the absolute reference angle. Projection references below 90° use an upright virtual plane to avoid placing the viewer behind the panel. The reference travels with the animated tilt and remains fixed throughout a clear transition; interrupted clears retarget both together. The Metal uniform remains 48 bytes. Blur grows from zero at the hinge and uses a lower maximum radius.
+Ghost transforms a fixed keyboard-space viewer into the resting screen plane using the absolute reference angle. Projection references below 90° use an upright virtual plane to avoid placing the viewer behind the panel. The reference travels with the animated tilt and remains fixed throughout a clear transition; interrupted clears retarget both together. An exact critically damped tilt response smooths whole-degree HID reports while keeping the rendered panel within one degree of motion. The Metal uniform remains 48 bytes. Blur grows from zero at the hinge and uses a lower maximum radius.
 
 World-space ray tests cover multiple resting angles and viewing distances. This is still an assumed viewpoint, not head tracking; subjective physical feel needs confirmation on the actual Mac.
+
+The app follows macOS language selection for English, Simplified Chinese, Traditional Chinese and Japanese. `SMAppService.mainApp` provides opt-in launch at login; it does not enable the live effect or request Screen Recording access. The optional menu-bar icon remains enabled by default. Lid HID polling follows the same power-, temperature- and display-aware 30/60/120 Hz cap as motion rendering.
 
 ## Version 0.1.12
 

@@ -1,10 +1,13 @@
 # Changelog
 
-## 0.1.13 · Unreleased
+## 0.1.13 · 11 September 2026
 
-- Ghost now keeps its assumed viewing position fixed relative to the keyboard, improving the stationary-desktop illusion when starting from different lid angles. Shallow angles use a stable fallback.
-- Lighter progressive blur keeps the dock and other content near the hinge clearer.
-- Keep the reference plane paired with tilt while clearing or resuming movement, avoiding a jump when the resting angle changes.
+- **Four interface languages.** Mac Duo now follows macOS in English, Simplified Chinese, Traditional Chinese or Japanese, with English fallback. Settings, menus, status messages, update dialogs and the Screen Recording description are localized.
+- **Open at login.** A new opt-in system Login Item starts Mac Duo paused. The menu-bar icon remains on by default and can now be hidden; reopening Mac Duo brings its settings back.
+- **More responsive lid tracking.** Sensor polling now follows the existing power-, temperature- and display-aware motion refresh cap.
+- **A steadier Ghost.** Ghost keeps its assumed viewing position fixed relative to the keyboard at different starting angles. Whole-degree sensor steps are smoothed without adding a degree of lag. Shallow angles use a stable fallback, the reference plane stays paired through clearing or resumed movement, and lighter progressive blur keeps content near the hinge clearer.
+
+Public builds remain ad-hoc signed and not notarized. First launch or an update may require **System Settings → Privacy & Security → Open Anyway**, and Screen Recording permission may need approval again.
 
 ## 0.1.12 · 11 September 2026
 

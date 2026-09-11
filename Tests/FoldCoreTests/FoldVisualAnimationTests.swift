@@ -144,6 +144,77 @@ private func trackingAnimation() -> FoldVisualAnimation {
     }
 }
 
+@Test func quantizedLidStepsProduceEvenGhostMotionWithoutAddedLag() {
+    var animation = FoldVisualAnimation()
+    var previousTilt = 0.0
+    var frameSteps: [Double] = []
+    for frame in 0..<120 {
+        // The HID report is integer degrees. At a steady 60°/s on a 120 Hz
+        // display, its target advances by one degree every other frame.
+        let degrees = Double(frame/2)
+        let target = FoldVisualState.at(angle:105-degrees,reference:105)
+        let value = animation.sample(target:target,at:Double(frame)/120)
+        frameSteps.append((value.tilt-previousTilt)*180 / .pi)
+        previousTilt = value.tilt
+    }
+    let steadySteps = frameSteps.dropFirst(24)
+    let largestVelocityChange = zip(steadySteps,steadySteps.dropFirst())
+        .map { abs($0-$1) }.max() ?? .infinity
+    #expect(largestVelocityChange < 0.15)
+    #expect(59-previousTilt*180 / .pi < 1)
+}
+
+@Test func slowQuantizedLidSweepDoesNotJumpAVisibleDegreeAtOnce() {
+    var animation = FoldVisualAnimation()
+    var previousTilt = 0.0
+    var largestStep = 0.0
+    for frame in 0..<240 {
+        // At 10°/s, a whole-degree report arrives every twelve 120 Hz frames.
+        let degrees = Double(frame/12)
+        let target = FoldVisualState.at(angle:105-degrees,reference:105)
+        let value = animation.sample(target:target,at:Double(frame)/120)
+        if frame > 24 {
+            largestStep = max(largestStep,(value.tilt-previousTilt)*180 / .pi)
+        }
+        previousTilt = value.tilt
+    }
+    #expect(largestStep < 0.3)
+}
+
+@Test func quantizedLidMotionToleratesSensorEdgesThatSlipAcrossFrames() {
+    var animation = FoldVisualAnimation()
+    var previousTilt = 0.0
+    var previousStep = 0.0
+    var largestVelocityChange = 0.0
+    var degrees = 0.0
+    for frame in 0..<180 {
+        // Alternate 1/3-frame holds to cover timer and display-link phase drift.
+        if frame > 0 && [1,4].contains(frame%4) { degrees += 1 }
+        let target = FoldVisualState.at(angle:105-degrees,reference:105)
+        let value = animation.sample(target:target,at:Double(frame)/120)
+        let step = (value.tilt-previousTilt)*180 / .pi
+        if frame > 24 { largestVelocityChange = max(largestVelocityChange,abs(step-previousStep)) }
+        previousStep = step
+        previousTilt = value.tilt
+    }
+    #expect(largestVelocityChange < 0.25)
+}
+
+@Test func interruptedClearDiscardsIncomingTiltVelocity() {
+    var animation = FoldVisualAnimation()
+    for frame in 0...20 {
+        let target = FoldVisualState.at(angle:105-Double(frame)/2,reference:105)
+        _ = animation.sample(target:target,at:Double(frame)/120)
+    }
+    _ = animation.sample(target:.clear,at:21.0/120)
+    _ = animation.sample(target:.clear,at:22.0/120)
+    let target = FoldVisualState.at(angle:102,reference:105)
+    let interrupted = animation.sample(target:target,at:23.0/120)
+    let next = animation.sample(target:target,at:24.0/120)
+    #expect(next.tilt <= interrupted.tilt)
+    #expect(next.tilt >= target.tilt)
+}
+
 @Test func restingPlaneStaysPairedWithTiltThroughClearAndInterruptedMotion() {
     var animation = FoldVisualAnimation()
     let closing = FoldVisualState.at(angle:90,reference:128)
