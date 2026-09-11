@@ -1,3 +1,4 @@
+
 import Foundation
 import IOKit.hid
 import FoldCore
@@ -10,7 +11,17 @@ final class LidSensor {
     private var device: IOHIDDevice?
     private var timer: DispatchSourceTimer?
     private var failures = 0
+    private var pollHz = 60
     var onReading: ((Double?) -> Void)?
+
+    func setPollingRate(_ rate: Int) {
+        let rate = max(1,rate)
+        queue.async { [weak self] in
+            guard let self, self.pollHz != rate else { return }
+            self.pollHz = rate
+            self.timer?.schedule(deadline:.now(),repeating:1.0/Double(rate),leeway:.milliseconds(2))
+        }
+    }
 
     func start() {
         queue.async { [weak self] in
@@ -29,7 +40,7 @@ final class LidSensor {
             self.device = device
             self.failures = 0
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
-            timer.schedule(deadline: .now(), repeating: 1.0 / 30, leeway: .milliseconds(2))
+            timer.schedule(deadline:.now(),repeating:1.0/Double(self.pollHz),leeway:.milliseconds(2))
             timer.setEventHandler { [weak self] in self?.read() }
             self.timer = timer
             timer.resume()
