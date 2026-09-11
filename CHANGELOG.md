@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13 · Unreleased
+
+- Ghost now keeps its assumed viewing position fixed relative to the keyboard, improving the stationary-desktop illusion when starting from different lid angles. Shallow angles use a stable fallback.
+- Lighter progressive blur keeps the dock and other content near the hinge clearer.
+- Keep the reference plane paired with tilt while clearing or resuming movement, avoiding a jump when the resting angle changes.
+
 ## 0.1.12 · 11 September 2026
 
 - **Ghost joins the effects.** A new second option that keeps the desktop at an apparent resting plane while the lid tilts. Perspective compensation and gradual blur make the display feel like moving glass. Duo remains the default; all six effects are available.

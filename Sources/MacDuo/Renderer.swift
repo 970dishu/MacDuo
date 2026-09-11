@@ -17,7 +17,7 @@ struct FoldUniforms: Equatable {
     var coverage: Float = 1
     // Negative values keep normalized-progress fixtures convenient. App paths supply radians.
     var tilt: Float = -1
-    var reserved: Float = 0
+    var referenceAngle: Float = 105
 
     var selectedEffect: FoldEffect { FoldEffect.resolve(shaderIndex: effect) }
 }
@@ -201,13 +201,15 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         var uniforms = parameters()
         let target = uniforms.progress > 0 ? FoldVisualState(progress:Double(uniforms.progress),
             defocus:Double(max(0,uniforms.defocus)),
-            tilt:Double(uniforms.tilt >= 0 ? uniforms.tilt : uniforms.progress * .pi/2)) : .clear
+            tilt:Double(uniforms.tilt >= 0 ? uniforms.tilt : uniforms.progress * .pi/2),
+            referenceAngle:Double(uniforms.referenceAngle)) : .clear
         let visual = animatedState?() ?? animation.sample(target:target,at:now)
         progress = visual.progress
         lastTime = now
         uniforms.progress = Float(visual.progress)
         uniforms.defocus = Float(visual.defocus)
         uniforms.tilt = Float(visual.tilt)
+        uniforms.referenceAngle = Float(visual.referenceAngle)
         uniforms.coverage = blendsWithDesktop ? Float(visual.coverage) : 1
         uniforms.size = SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height))
         let settled = visual.isNear(target) && !keepsAnimating()

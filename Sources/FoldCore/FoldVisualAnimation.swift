@@ -7,11 +7,14 @@ public struct FoldVisualState: Equatable, Sendable {
     public var coverage: Double
     /// Physical rotation from the resting plane; independent of eased fold progress.
     public var tilt: Double
-    public init(progress: Double, defocus: Double, coverage: Double = 1, tilt: Double = 0) {
+    /// Absolute resting lid angle, kept with tilt while the old plane clears.
+    public var referenceAngle: Double
+    public init(progress: Double, defocus: Double, coverage: Double = 1, tilt: Double = 0, referenceAngle: Double = 105) {
         self.progress = progress; self.defocus = defocus; self.coverage = coverage; self.tilt = tilt
+        self.referenceAngle = referenceAngle
     }
     public static let clear = Self(progress: 0, defocus: 0, coverage: 0)
-    public var isClear: Bool { self == .clear }
+    public var isClear: Bool { progress == 0 && defocus == 0 && coverage == 0 && tilt == 0 }
 
     public static func at(angle: Double, reference: Double) -> Self {
         guard angle.isFinite, reference.isFinite else { return .clear }
@@ -25,15 +28,18 @@ public struct FoldVisualState: Equatable, Sendable {
         // Barely visible for 1–3°, substantial at 15°, with room for deeper closure.
         let defocus = 0.16*ease(delta/15)*ease(delta/6)
             + 0.84*ease((delta-15)/max(10,span-15))
-        return Self(progress: progress, defocus: min(1,defocus), tilt: min(85,delta) * .pi/180)
+        return Self(progress: progress, defocus: min(1,defocus), tilt: min(85,delta) * .pi/180,
+                    referenceAngle:reference)
     }
 
     static func ease(_ t: Double) -> Double {
         let t = min(1,max(0,t)); return t*t*(3-2*t)
     }
     public func isNear(_ other: Self) -> Bool {
-        abs(progress-other.progress) < 1e-7 && abs(defocus-other.defocus) < 1e-7
+        if isClear && other.isClear { return true }
+        return abs(progress-other.progress) < 1e-7 && abs(defocus-other.defocus) < 1e-7
             && abs(coverage-other.coverage) < 1e-7 && abs(tilt-other.tilt) < 1e-7
+            && abs(referenceAngle-other.referenceAngle) < 1e-7
     }
 }
 
@@ -52,7 +58,8 @@ public struct FoldVisualAnimation {
 
     public mutating func sample(target: FoldVisualState, at now: TimeInterval) -> FoldVisualState {
         guard now.isFinite, target.progress.isFinite, target.defocus.isFinite,
-              target.coverage.isFinite, target.tilt.isFinite else { reset(); return .clear }
+              target.coverage.isFinite, target.tilt.isFinite,
+              target.referenceAngle.isFinite else { reset(); return .clear }
         let dt = lastTime.map { min(0.1,max(0,now-$0)) } ?? 0
         lastTime = now
         if let start = clearStart {
@@ -60,7 +67,7 @@ public struct FoldVisualAnimation {
             let remaining = 1-FoldVisualState.ease(t)
             value = .init(progress:clearFrom.progress*remaining,defocus:clearFrom.defocus*remaining,
                 coverage:clearFrom.coverage*(1-FoldVisualState.ease((t-0.75)/0.25)),
-                tilt:clearFrom.tilt*remaining)
+                tilt:clearFrom.tilt*remaining,referenceAngle:clearFrom.referenceAngle)
             if t >= 1 { value = .clear; clearStart = nil }
             if !target.isClear {
                 clearStart = nil
@@ -73,13 +80,18 @@ public struct FoldVisualAnimation {
             return value
         }
         let mix = 1-exp(-dt/0.045)
+        let tiltMix = 1-exp(-dt/0.015)
+        // Seed a new plane while invisible. If movement interrupts a clear,
+        // retarget the paired reference and tilt without jumping between planes.
+        if value.isClear { value.referenceAngle = target.referenceAngle }
+        else { value.referenceAngle += (target.referenceAngle-value.referenceAngle)*tiltMix }
         value.progress += (target.progress-value.progress)*mix
         value.defocus += (target.defocus-value.defocus)*mix
         value.coverage += (target.coverage-value.coverage)*mix
         // Counter-rotation must stay close to the physical panel. A slower
         // response makes the desktop appear attached to the moving lid.
         // Optical softening keeps its gentler response and clearing clock.
-        value.tilt += (target.tilt-value.tilt)*(1-exp(-dt/0.015))
+        value.tilt += (target.tilt-value.tilt)*tiltMix
         if value.isNear(target) { value = target }
         return value
     }

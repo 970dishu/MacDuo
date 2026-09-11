@@ -212,6 +212,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         var u = FoldUniforms()
         let visual = preview ? previewState : liveState
         u.progress = Float(visual.progress);u.defocus = Float(visual.defocus);u.tilt = Float(visual.tilt)
+        u.referenceAngle = Float(visual.referenceAngle)
         u.perspective = Float(perspective);u.blur = Float(blur);u.shadow = Float(shadow)
         u.fadeOnly = reducedMotion ? 1 : 0
         u.effect = effect.shaderIndex // The desktop and its preview always share one selection.

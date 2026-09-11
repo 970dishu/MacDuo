@@ -143,3 +143,36 @@ private func trackingAnimation() -> FoldVisualAnimation {
         #expect(animation.sample(target:target,at:1.1).tilt <= target.tilt)
     }
 }
+
+@Test func restingPlaneStaysPairedWithTiltThroughClearAndInterruptedMotion() {
+    var animation = FoldVisualAnimation()
+    let closing = FoldVisualState.at(angle:90,reference:128)
+    for tick in 0...120 { _ = animation.sample(target:closing,at:Double(tick)/120) }
+    #expect(animation.value.referenceAngle == 128)
+    _ = animation.sample(target:.clear,at:1)
+    let halfway = animation.sample(target:.clear,at:1.3)
+    #expect(halfway.referenceAngle == 128)
+    #expect(halfway.tilt > 0)
+    var uninterrupted = animation
+    let nextMovement = FoldVisualState.at(angle:85,reference:90)
+    let interrupted = animation.sample(target:nextMovement,at:1.31)
+    #expect(interrupted == uninterrupted.sample(target:.clear,at:1.31))
+    let retargeted = animation.sample(target:nextMovement,at:1.32)
+    #expect(retargeted.referenceAngle > 90 && retargeted.referenceAngle < 128)
+    #expect(retargeted.tilt >= nextMovement.tilt && retargeted.tilt <= interrupted.tilt)
+    _ = animation.sample(target:.clear,at:2)
+    #expect(animation.sample(target:.clear,at:2.601).isClear)
+    let fresh = animation.sample(target:nextMovement,at:2.7)
+    #expect(fresh.referenceAngle == 90)
+}
+
+@Test func planeMetadataDoesNotMakeAnInvisibleFrameVisibleAndRejectsInvalidValues() {
+    let invisible = FoldVisualState(progress:0,defocus:0,coverage:0,tilt:0,referenceAngle:128)
+    #expect(invisible.isClear && invisible.isNear(.clear))
+    let moving = FoldVisualState.at(angle:90,reference:128)
+    var differentPlane = moving;differentPlane.referenceAngle = 105
+    #expect(!moving.isNear(differentPlane))
+    var animation = trackingAnimation()
+    differentPlane.referenceAngle = .nan
+    #expect(animation.sample(target:differentPlane,at:2).isClear)
+}

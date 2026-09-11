@@ -39,6 +39,12 @@ swift build
 
 The render check uses generated artwork only; it does not capture the desktop. It verifies all six effects: pixel identity when open/reopened, black closure, opacity, blur, practical geometry, distinct intermediate frames, smooth onset, Reduce Motion, cache freshness and GPU timing. Add `--animation` to export generated closing/reopening frames for every effect. GPU measurements exclude capture and display composition. Physical lid sweeps, sustained energy use and platform lifecycle transitions still need testing on more hardware.
 
+## Unreleased 0.1.13
+
+Ghost transforms a fixed keyboard-space viewer into the resting screen plane using the absolute reference angle. Projection references below 90° use an upright virtual plane to avoid placing the viewer behind the panel. The reference travels with the animated tilt and remains fixed throughout a clear transition; interrupted clears retarget both together. The Metal uniform remains 48 bytes. Blur grows from zero at the hinge and uses a lower maximum radius.
+
+World-space ray tests cover multiple resting angles and viewing distances. This is still an assumed viewpoint, not head tracking; subjective physical feel needs confirmation on the actual Mac.
+
 ## Version 0.1.12
 
 This release gathers the locally tested 0.1.7–0.1.11 changes and adds an in-app updater and Ghost perspective compensation. Both the executable and bundle target macOS 13; the Metal shaders use the Metal 3.0 baseline. Physical Ventura testing remains pending.
