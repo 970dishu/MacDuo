@@ -1,3 +1,4 @@
+
 import AppKit
 import SwiftUI
 import MetalKit
@@ -186,6 +187,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
                 thermalPressure:info.thermalState == .serious || info.thermalState == .critical,moving:true)
             if fps != rate {
                 fps = rate
+                sensor.setPollingRate(rate)
                 logger.notice("Motion refresh cap: \(rate) Hz; capture stays at most 60 Hz.")
             }
         }
@@ -233,7 +235,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         guard device != nil else { status = "This Mac does not have a supported Metal GPU.";return }
         guard sensorAvailable else { status = "No working lid angle sensor was found. The preview still works.";return }
         checkingPermission = true
-        status = "Checking screen access…"
+        status = "Checking screen accessâ¦"
         enableTask = Task { [weak self] in
             guard let self else { return }
             defer { self.checkingPermission = false }
