@@ -1,12 +1,13 @@
 import Foundation
 
-/// Use the SwiftPM resource bundle for both SwiftUI and AppKit strings.
-/// Missing translations fall back to the English source key.
+/// Use the packaged resource bundle for both SwiftUI and AppKit strings.
+/// Development builds fall back to the English source key without embedding
+/// SwiftPM's absolute build-machine resource path in the executable.
 enum L10n {
     private static let bundle: Bundle = {
         if let url = Bundle.main.url(forResource:"MacDuo_MacDuo",withExtension:"bundle"),
            let packaged = Bundle(url:url) { return packaged }
-        return Bundle.module
+        return Bundle.main
     }()
 
     static func text(_ key: String) -> String {
