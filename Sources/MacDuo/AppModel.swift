@@ -33,6 +33,10 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     }
 }
 
+private enum LidSoundPosition {
+    case unknown, open, closed
+}
+
 @MainActor final class AppModel: ObservableObject {
     @Published var lidAngle: Double?
     @Published var enabled = false
@@ -131,6 +135,9 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     private var notifications: [NSObjectProtocol] = []
     private var syntheticCheckPath: String?
     private var presentedFrames = 0
+    private var lidSoundPosition = LidSoundPosition.unknown
+    private var closeSound = NSSound(named:NSSound.Name("Glass"))
+    private var openSound = NSSound(named:NSSound.Name("Pop"))
     var showWindow: (() -> Void)?
     var overlayVisibilityChanged: ((Bool) -> Void)?
     var menuBarVisibilityChanged: ((Bool) -> Void)?
@@ -163,6 +170,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
             guard let self else { return }
             let angleChanged = self.lidAngle != angle
             if angleChanged { self.lidAngle = angle }
+            if angleChanged, self.enabled { self.updateLidSound(for:angle) }
             if self.sensorAvailable != (angle != nil) { self.sensorAvailable = angle != nil }
             self.sensorAt = ProcessInfo.processInfo.systemUptime
             let settled = self.stillness.observe(angle:angle,at:self.sensorAt,delay:self.stillnessDelay)
@@ -195,6 +203,22 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
     private var fixedReference: Double { min(140,max(60,clearAngle.isFinite ? clearAngle : 105)) }
     private var liveReference: Double { motionReference.reference(clearAngle:clearAngle) }
+
+    private func updateLidSound(for angle: Double?) {
+        guard let angle, angle.isFinite else { return }
+        if angle <= 30 {
+            guard lidSoundPosition != .closed else { return }
+            lidSoundPosition = .closed
+            closeSound?.play()
+        } else if angle >= 150 {
+            guard lidSoundPosition == .closed else {
+                if lidSoundPosition == .unknown { lidSoundPosition = .open }
+                return
+            }
+            lidSoundPosition = .open
+            openSound?.play()
+        }
+    }
 
     private var previewState: FoldVisualState {
         if let start = previewStart {
