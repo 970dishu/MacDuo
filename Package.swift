@@ -1,9 +1,10 @@
 // swift-tools-version: 6.0
 import PackageDescription
-let package = Package(name: "MacDuo", platforms: [.macOS(.v14)], products: [
+let package = Package(name: "MacDuo", defaultLocalization: "en", platforms: [.macOS(.v14)], products: [
     .executable(name: "MacDuo", targets: ["MacDuo"])
 ], targets: [
     .target(name: "FoldCore"),
-    .executableTarget(name: "MacDuo", dependencies: ["FoldCore"], swiftSettings: [.swiftLanguageMode(.v5)]),
-    .testTarget(name: "FoldCoreTests", dependencies: ["FoldCore"])
+    .executableTarget(name: "MacDuo", dependencies: ["FoldCore"], resources: [.process("Resources")], swiftSettings: [.swiftLanguageMode(.v5)]),
+    .testTarget(name: "FoldCoreTests", dependencies: ["FoldCore"]),
+    .testTarget(name: "LocalizationTests", dependencies: ["MacDuo"])
 ])

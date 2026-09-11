@@ -37,12 +37,12 @@ import OSLog
         }
         statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength)
         statusItem.button?.image = AppBrand.menuBarMark
-        statusItem.button?.toolTip = "Mac Duo — your desktop follows your lid"
+        statusItem.button?.toolTip = L10n.text("Mac Duo — your desktop follows your lid")
         let menu = NSMenu();menu.delegate = self;statusItem.menu = menu
         let appMenu = NSMenu()
         let appItem = NSMenuItem();appMenu.addItem(appItem)
         let submenu = NSMenu();submenu.addItem(effectItem());submenu.addItem(appearanceItem());submenu.addItem(.separator())
-        submenu.addItem(withTitle:"Quit Mac Duo",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
+        submenu.addItem(withTitle:L10n.text("Quit Mac Duo"),action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
         appItem.submenu = submenu;NSApp.mainMenu = appMenu
         showSettings()
         if let index = CommandLine.arguments.firstIndex(of:"--overlay-check"), index+1 < CommandLine.arguments.count {
@@ -117,22 +117,22 @@ import OSLog
         model.effect = FoldEffect.resolve(persisted:rawValue)
     }
     private func effectItem() -> NSMenuItem {
-        let item = NSMenuItem(title:"Effect",action:nil,keyEquivalent:"")
+        let item = NSMenuItem(title:L10n.text("Effect"),action:nil,keyEquivalent:"")
         item.image = NSImage(systemSymbolName:model.effect.symbol,accessibilityDescription:nil)
-        let menu = NSMenu(title:"Effect");menu.identifier = NSUserInterfaceItemIdentifier("effect");menu.delegate = self
+        let menu = NSMenu(title:L10n.text("Effect"));menu.identifier = NSUserInterfaceItemIdentifier("effect");menu.delegate = self
         for effect in FoldEffect.allCases {
-            let option = menu.addItem(withTitle:effect.title,action:#selector(setEffect(_:)),keyEquivalent:"")
+            let option = menu.addItem(withTitle:L10n.text(effect.title),action:#selector(setEffect(_:)),keyEquivalent:"")
             option.target = self;option.representedObject = effect.persistedIdentifier
-            option.toolTip = effect.summary
+            option.toolTip = L10n.text(effect.summary)
             option.state = model.effect == effect ? .on : .off
         }
         item.submenu = menu
         return item
     }
     private func appearanceItem() -> NSMenuItem {
-        let item = NSMenuItem(title:"Appearance",action:nil,keyEquivalent:"")
+        let item = NSMenuItem(title:L10n.text("Appearance"),action:nil,keyEquivalent:"")
         item.image = NSImage(systemSymbolName:"circle.lefthalf.filled",accessibilityDescription:nil)
-        let menu = NSMenu(title:"Appearance");menu.identifier = NSUserInterfaceItemIdentifier("appearance");menu.delegate = self
+        let menu = NSMenu(title:L10n.text("Appearance"));menu.identifier = NSUserInterfaceItemIdentifier("appearance");menu.delegate = self
         for appearance in AppAppearance.allCases {
             let option = menu.addItem(withTitle:appearance.title,action:#selector(setAppearance(_:)),keyEquivalent:"")
             option.target = self;option.representedObject = appearance.rawValue
@@ -153,16 +153,16 @@ import OSLog
             return
         }
         menu.removeAllItems()
-        let state = NSMenuItem(title:model.lidAngle.map{String(format:"Lid angle: %.0f°",$0)} ?? "Sensor unavailable",action:nil,keyEquivalent:"")
+        let state = NSMenuItem(title:model.lidAngle.map{L10n.format("Lid angle: %.0f°",$0)} ?? L10n.text("Sensor unavailable"),action:nil,keyEquivalent:"")
         state.isEnabled = false;menu.addItem(state)
         menu.addItem(.separator())
-        let toggle = menu.addItem(withTitle:model.enabled ? "Pause Mac Duo" : "Enable Mac Duo",action:#selector(toggleEffect),keyEquivalent:"");toggle.target = self
-        let settings = menu.addItem(withTitle:"Open Mac Duo…",action:#selector(showSettings),keyEquivalent:",");settings.target = self
-        let test = menu.addItem(withTitle:"Test desktop for 8 seconds",action:#selector(testEffect),keyEquivalent:"");test.target = self
+        let toggle = menu.addItem(withTitle:model.enabled ? L10n.text("Pause Mac Duo") : L10n.text("Enable Mac Duo"),action:#selector(toggleEffect),keyEquivalent:"");toggle.target = self
+        let settings = menu.addItem(withTitle:L10n.text("Open Mac Duo…"),action:#selector(showSettings),keyEquivalent:",");settings.target = self
+        let test = menu.addItem(withTitle:L10n.text("Test desktop for 8 seconds"),action:#selector(testEffect),keyEquivalent:"");test.target = self
         menu.addItem(effectItem())
         menu.addItem(appearanceItem())
         menu.addItem(.separator())
-        menu.addItem(withTitle:"Quit Mac Duo",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
+        menu.addItem(withTitle:L10n.text("Quit Mac Duo"),action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q")
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool) -> Bool { showSettings();return true }

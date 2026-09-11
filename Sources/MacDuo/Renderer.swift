@@ -60,7 +60,7 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
 
     init(device: MTLDevice) throws {
         self.device = device
-        guard let queue = device.makeCommandQueue() else { throw AppError.message("Metal command queue unavailable.") }
+        guard let queue = device.makeCommandQueue() else { throw AppError.message(L10n.text("Metal command queue unavailable.")) }
         self.queue = queue
         let library = try device.makeLibrary(source: FoldShader.source, options: nil)
         let descriptor = MTLRenderPipelineDescriptor()
@@ -69,12 +69,12 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
         pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
         guard let downsample = library.makeFunction(name: "foldDownsample") else {
-            throw AppError.message("Blur shader unavailable.")
+            throw AppError.message(L10n.text("Blur shader unavailable."))
         }
         downsamplePipeline = try device.makeComputePipelineState(function: downsample)
         super.init()
         guard CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &cache) == kCVReturnSuccess else {
-            throw AppError.message("Metal texture cache unavailable.")
+            throw AppError.message(L10n.text("Metal texture cache unavailable."))
         }
     }
 
@@ -143,7 +143,7 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
                 guard let self else { return }
                 if buffer.status == .error {
                     self.blurredRevision = nil; self.renderedUniforms = nil
-                    self.onFailure?(buffer.error?.localizedDescription ?? "Metal rendering failed.")
+                    self.onFailure?(buffer.error?.localizedDescription ?? L10n.text("Metal rendering failed."))
                 }
                 self.lastGPUTimeMS = max(0, (buffer.gpuEndTime-buffer.gpuStartTime)*1000)
                 if buffer.status == .completed { self.onPresented?() }
@@ -168,12 +168,12 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
             descriptor.storageMode = .private
             descriptor.usage = [.shaderRead, .shaderWrite, .pixelFormatView]
             guard let texture = device.makeTexture(descriptor: descriptor) else {
-                throw AppError.message("Blur texture allocation failed.")
+                throw AppError.message(L10n.text("Blur texture allocation failed."))
             }
             var levels: [MTLTexture] = []
             for level in 0..<texture.mipmapLevelCount {
                 guard let view = texture.makeTextureView(pixelFormat: texture.pixelFormat, textureType: .type2D,
-                    levels: level..<(level+1), slices: 0..<1) else { throw AppError.message("Blur level unavailable.") }
+                    levels: level..<(level+1), slices: 0..<1) else { throw AppError.message(L10n.text("Blur level unavailable.")) }
                 levels.append(view)
             }
             blurPyramid = texture; blurLevels = levels
@@ -181,14 +181,14 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         }
         if let revision, blurredRevision == revision, let pyramid = blurPyramid { return pyramid }
         guard let pyramid = blurPyramid, let blit = command.makeBlitCommandEncoder() else {
-            throw AppError.message("Blur copy encoder unavailable.")
+            throw AppError.message(L10n.text("Blur copy encoder unavailable."))
         }
         blit.copy(from: input, sourceSlice: 0, sourceLevel: 0, sourceOrigin: MTLOrigin(),
             sourceSize: MTLSize(width: input.width, height: input.height, depth: 1),
             to: pyramid, destinationSlice: 0, destinationLevel: 0, destinationOrigin: MTLOrigin())
         blit.endEncoding()
         for level in 1..<blurLevels.count {
-            guard let encoder = command.makeComputeCommandEncoder() else { throw AppError.message("Blur encoder unavailable.") }
+            guard let encoder = command.makeComputeCommandEncoder() else { throw AppError.message(L10n.text("Blur encoder unavailable.")) }
             encoder.setComputePipelineState(downsamplePipeline)
             encoder.setTexture(blurLevels[level-1], index: 0)
             encoder.setTexture(blurLevels[level], index: 1)
@@ -207,7 +207,7 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         // surfaces minify the source, so they read the pyramid even at zero Softness.
         let needsBlur = moving && (uniforms.blur > 0 || uniforms.selectedEffect.needsPrefilteredSource)
         let blurred = needsBlur ? try prepareBlur(command: command, input: texture, revision:sourceRevision) : texture
-        guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw AppError.message("Render encoder unavailable.") }
+        guard let encoder = command.makeRenderCommandEncoder(descriptor: pass) else { throw AppError.message(L10n.text("Render encoder unavailable.")) }
         var uniforms = uniforms
         encoder.setRenderPipelineState(pipeline)
         encoder.setFragmentTexture(texture, index: 0)
@@ -223,18 +223,18 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat:.bgra8Unorm,width:w,height:h,mipmapped:false)
         descriptor.usage = .renderTarget; descriptor.storageMode = .shared
         guard let target = device.makeTexture(descriptor:descriptor), let command = queue.makeCommandBuffer() else {
-            throw AppError.message("Cannot create the overlay test frame.")
+            throw AppError.message(L10n.text("Cannot create the overlay test frame."))
         }
         let pass = MTLRenderPassDescriptor();pass.colorAttachments[0].texture = target
         pass.colorAttachments[0].loadAction = .clear;pass.colorAttachments[0].storeAction = .store
         try encode(command:command,pass:pass,texture:input,uniforms:FoldUniforms())
         command.commit();command.waitUntilCompleted()
-        guard command.status == .completed else { throw AppError.message("Test frame rendering failed.") }
+        guard command.status == .completed else { throw AppError.message(L10n.text("Test frame rendering failed.")) }
         var pixel: CVPixelBuffer?
         let attributes: [String:Any] = [kCVPixelBufferMetalCompatibilityKey as String:true,
                                        kCVPixelBufferIOSurfacePropertiesKey as String:[:]]
         guard CVPixelBufferCreate(kCFAllocatorDefault,w,h,kCVPixelFormatType_32BGRA,attributes as CFDictionary,&pixel) == kCVReturnSuccess,
-              let pixel else { throw AppError.message("Test pixel buffer unavailable.") }
+              let pixel else { throw AppError.message(L10n.text("Test pixel buffer unavailable.")) }
         CVPixelBufferLockBaseAddress(pixel,[])
         target.getBytes(CVPixelBufferGetBaseAddress(pixel)!,bytesPerRow:CVPixelBufferGetBytesPerRow(pixel),from:MTLRegionMake2D(0,0,w,h),mipmapLevel:0)
         CVPixelBufferUnlockBaseAddress(pixel,[])
@@ -245,7 +245,7 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
             bytesPerRow: width*4, space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            throw AppError.message("Preview image could not be created.")
+            throw AppError.message(L10n.text("Preview image could not be created."))
         }
         context.scaleBy(x: CGFloat(width)/1440, y: CGFloat(height)/936)
         let colors = [NSColor(red: 0.07, green: 0.13, blue: 0.18, alpha: 1).cgColor,
@@ -269,7 +269,9 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
         let previewTitle = "Mac Duo" as NSString
         let titleWidth = previewTitle.size(withAttributes:title).width
         previewTitle.draw(at:CGPoint(x:(1440-titleWidth)/2,y:530),withAttributes:title)
-        ("A little motion. A different feeling." as NSString).draw(at:CGPoint(x:533,y:493),withAttributes:caption)
+        let previewCaption = L10n.text("A little motion. A different feeling.") as NSString
+        let captionWidth = previewCaption.size(withAttributes:caption).width
+        previewCaption.draw(at:CGPoint(x:(1440-captionWidth)/2,y:493),withAttributes:caption)
         NSColor.white.withAlphaComponent(0.16).setFill()
         NSBezierPath(roundedRect:NSRect(x:490,y:28,width:460,height:78),xRadius:23,yRadius:23).fill()
         for i in 0..<7 {
@@ -277,7 +279,7 @@ final class FoldRenderer: NSObject, MTKViewDelegate {
             NSBezierPath(roundedRect:NSRect(x:511+i*62,y:41,width:49,height:49),xRadius:13,yRadius:13).fill()
         }
         NSGraphicsContext.restoreGraphicsState()
-        guard let image = context.makeImage() else { throw AppError.message("Preview image is unavailable.") }
+        guard let image = context.makeImage() else { throw AppError.message(L10n.text("Preview image is unavailable.")) }
         return try MTKTextureLoader(device:device).newTexture(cgImage:image,options:[.SRGB:false,.origin:MTKTextureLoader.Origin.topLeft])
     }
 }

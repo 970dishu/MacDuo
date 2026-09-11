@@ -54,3 +54,17 @@ Issues and focused pull requests are welcome. Include macOS version, Mac model, 
 ## Credits
 
 The implementation is original. Public demonstrations and hardware research helped guide it; see [ATTRIBUTION.md](../ATTRIBUTION.md). Mac Duo is independent and is not affiliated with Apple, Bendy or the reference projects.
+
+## Localization
+
+User-facing text lives in `Sources/MacDuo/Resources/{en,zh-Hans,zh-Hant,ja}.lproj`. English source strings are the keys. `L10n` explicitly loads the packaged resource bundle inside an app and uses `Bundle.module` during SwiftPM development. Both SwiftUI and AppKit use the same lookup; missing keys fall back to English. Effect persistence identifiers remain unchanged.
+
+To add a language, copy the English `Localizable.strings` and `InfoPlist.strings` into a new `.lproj` folder, translate the values while preserving format placeholders, and add the language to `CFBundleLocalizations` in `build.sh` and the localization test language list. The packaging script copies the SwiftPM bundle and the localized privacy descriptions into the app before signing.
+
+Run `swift test` for key coverage and format-placeholder checks, and `./build.sh` for release packaging and signature verification. For a language smoke test, quit the app and launch it with a temporary process-only language override:
+
+```sh
+open -n "build/Mac Duo.app" --args -AppleLanguages '("ja")'
+```
+
+Repeat for `en`, `zh-Hans`, and `zh-Hant`; check the settings, effect and appearance menus, tooltips, and status messages. Also test an unsupported language such as `fr` for English fallback. Do not enable desktop capture just to verify translations. Check a copy of the packaged app outside the checkout with the build resource bundle temporarily unavailable to verify that it is self-contained.

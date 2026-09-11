@@ -49,6 +49,10 @@ Quit Mac Duo before replacing the app in Applications. For the ZIP, unzip it and
 
 </details>
 
+## Languages
+
+Mac Duo supports English, Simplified Chinese, Traditional Chinese and Japanese. It follows your macOS language preferences, with English as the fallback. To choose a language just for Mac Duo, add it under **System Settings → General → Language & Region → Applications**, then quit and reopen the app.
+
 ## Small, local, open
 
 Native **Swift + Metal**, with no third-party runtime dependencies, accounts, analytics or network access. Settled previews stop rendering; blur is cached. Rendering is capped according to power and temperature, with up to 120 Hz requested on supported displays while plugged in. Actual frame rate and battery impact vary by Mac.
