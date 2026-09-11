@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import AVFoundation
 import SwiftUI
 import MetalKit
 import Carbon
@@ -11,6 +12,32 @@ import ServiceManagement
 final class OverlayPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+}
+
+@MainActor final class DoorLidSound {
+    private let engine = AVAudioEngine()
+    private let player = AVAudioPlayerNode()
+    private var file: AVAudioFile?
+
+    init() {
+        guard let url = Bundle.module.url(forResource:"Door",withExtension:"aif"),
+              let file = try? AVAudioFile(forReading:url) else { return }
+        self.file = file
+        engine.attach(player)
+        engine.connect(player,to:engine.mainMixerNode,format:file.processingFormat)
+        engine.prepare()
+    }
+
+    func start() {
+        guard let file, !player.isPlaying else { return }
+        do {
+            if !engine.isRunning { try engine.start() }
+            player.scheduleFile(file,at:nil)
+            player.play()
+        } catch {}
+    }
+
+    func stop() { player.stop() }
 }
 
 enum AppAppearance: String, CaseIterable, Identifiable {
@@ -31,10 +58,6 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         case .dark: return NSAppearance(named:.darkAqua)
         }
     }
-}
-
-private enum LidSoundPosition {
-    case unknown, open, closing, closed
 }
 
 @MainActor final class AppModel: ObservableObject {
@@ -135,12 +158,8 @@ private enum LidSoundPosition {
     private var notifications: [NSObjectProtocol] = []
     private var syntheticCheckPath: String?
     private var presentedFrames = 0
-    private var lidSoundPosition = LidSoundPosition.unknown
-    private var lastSoundAngle: Double?
-    private var nextStepSoundAngle: Double?
-    private var startSound = NSSound(named:NSSound.Name("Ping"))
-    private var stepSound = NSSound(named:NSSound.Name("Sosumi"))
-    private var closedSound = NSSound(named:NSSound.Name("Tink"))
+    private let lidSound = DoorLidSound()
+    private var lidSoundStopTimer: Timer?
     var showWindow: (() -> Void)?
     var overlayVisibilityChanged: ((Bool) -> Void)?
     var menuBarVisibilityChanged: ((Bool) -> Void)?
@@ -173,7 +192,7 @@ private enum LidSoundPosition {
             guard let self else { return }
             let angleChanged = self.lidAngle != angle
             if angleChanged { self.lidAngle = angle }
-            if angleChanged, self.enabled { self.updateLidSound(for:angle) }
+            if angleChanged, self.enabled { self.playLidSoundDuringMovement() }
             if self.sensorAvailable != (angle != nil) { self.sensorAvailable = angle != nil }
             self.sensorAt = ProcessInfo.processInfo.systemUptime
             let settled = self.stillness.observe(angle:angle,at:self.sensorAt,delay:self.stillnessDelay)
@@ -204,36 +223,19 @@ private enum LidSoundPosition {
         observeWorkspace()
     }
 
-    private var fixedReference: Double { min(140,max(60,clearAngle.isFinite ? clearAngle : 105)) }
-    private var liveReference: Double { motionReference.reference(clearAngle:clearAngle) }
-
-    private func updateLidSound(for angle: Double?) {
-        guard let angle, angle.isFinite else { return }
-        defer { lastSoundAngle = angle }
-        if angle >= 150 {
-            lidSoundPosition = .open
-            nextStepSoundAngle = nil
-            return
-        }
-        guard let lastSoundAngle, angle < lastSoundAngle else { return }
-        if angle <= 30 {
-            guard lidSoundPosition != .closed else { return }
-            lidSoundPosition = .closed
-            nextStepSoundAngle = nil
-            closedSound?.play()
-            return
-        }
-        if lidSoundPosition == .open || lidSoundPosition == .unknown {
-            lidSoundPosition = .closing
-            nextStepSoundAngle = angle - 2
-            startSound?.play()
-            return
-        }
-        if lidSoundPosition == .closing, let nextStepSoundAngle, angle <= nextStepSoundAngle {
-            stepSound?.play()
-            self.nextStepSoundAngle = angle - 2
+    private func playLidSoundDuringMovement() {
+        lidSound.start()
+        lidSoundStopTimer?.invalidate()
+        lidSoundStopTimer = Timer.scheduledTimer(withTimeInterval:0.2,repeats:false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.lidSound.stop()
+                self?.lidSoundStopTimer = nil
+            }
         }
     }
+
+    private var fixedReference: Double { min(140,max(60,clearAngle.isFinite ? clearAngle : 105)) }
+    private var liveReference: Double { motionReference.reference(clearAngle:clearAngle) }
 
     private var previewState: FoldVisualState {
         if let start = previewStart {
@@ -370,6 +372,8 @@ private enum LidSoundPosition {
             renderer?.reportsEveryPresentation = false
         }
         enabled = false;demoStart = nil;demoRunning = false
+        lidSoundStopTimer?.invalidate();lidSoundStopTimer = nil
+        lidSound.stop()
         hideOverlay();capture.stop();status = message
     }
 
