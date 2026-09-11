@@ -34,7 +34,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 }
 
 private enum LidSoundPosition {
-    case unknown, open, closed
+    case unknown, open, closing, closed
 }
 
 @MainActor final class AppModel: ObservableObject {
@@ -136,8 +136,11 @@ private enum LidSoundPosition {
     private var syntheticCheckPath: String?
     private var presentedFrames = 0
     private var lidSoundPosition = LidSoundPosition.unknown
-    private var closeSound = NSSound(named:NSSound.Name("Glass"))
-    private var openSound = NSSound(named:NSSound.Name("Pop"))
+    private var lastSoundAngle: Double?
+    private var nextStepSoundAngle: Double?
+    private var startSound = NSSound(named:NSSound.Name("Ping"))
+    private var stepSound = NSSound(named:NSSound.Name("Sosumi"))
+    private var closedSound = NSSound(named:NSSound.Name("Tink"))
     var showWindow: (() -> Void)?
     var overlayVisibilityChanged: ((Bool) -> Void)?
     var menuBarVisibilityChanged: ((Bool) -> Void)?
@@ -206,17 +209,29 @@ private enum LidSoundPosition {
 
     private func updateLidSound(for angle: Double?) {
         guard let angle, angle.isFinite else { return }
+        defer { lastSoundAngle = angle }
+        if angle >= 150 {
+            lidSoundPosition = .open
+            nextStepSoundAngle = nil
+            return
+        }
+        guard let lastSoundAngle, angle < lastSoundAngle else { return }
         if angle <= 30 {
             guard lidSoundPosition != .closed else { return }
             lidSoundPosition = .closed
-            closeSound?.play()
-        } else if angle >= 150 {
-            guard lidSoundPosition == .closed else {
-                if lidSoundPosition == .unknown { lidSoundPosition = .open }
-                return
-            }
-            lidSoundPosition = .open
-            openSound?.play()
+            nextStepSoundAngle = nil
+            closedSound?.play()
+            return
+        }
+        if lidSoundPosition == .open || lidSoundPosition == .unknown {
+            lidSoundPosition = .closing
+            nextStepSoundAngle = angle - 2
+            startSound?.play()
+            return
+        }
+        if lidSoundPosition == .closing, let nextStepSoundAngle, angle <= nextStepSoundAngle {
+            stepSound?.play()
+            self.nextStepSoundAngle = angle - 2
         }
     }
 
