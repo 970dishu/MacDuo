@@ -26,6 +26,7 @@ for localization in Sources/MacDuo/Resources/*.lproj; do
   cp "$localization/InfoPlist.strings" "$APP/Contents/Resources/$locale/InfoPlist.strings"
 done
 cp Resources/MacDuoMark.png Resources/MacDuo.icns "$APP/Contents/Resources/"
+cp ATTRIBUTION.md "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -38,9 +39,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>MacDuo</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>MacDuo</string>
-<key>CFBundleShortVersionString</key><string>0.1.6</string>
-<key>CFBundleVersion</key><string>7</string>
-<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>CFBundleShortVersionString</key><string>0.1.12</string>
+<key>CFBundleVersion</key><string>13</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSScreenCaptureUsageDescription</key><string>Mac Duo displays a temporary, animated copy of your desktop as you move the lid. Frames stay in memory on this Mac.</string>
