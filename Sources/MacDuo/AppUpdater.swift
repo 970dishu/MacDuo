@@ -224,7 +224,8 @@ enum UpdateInstallation {
             throw UpdateError.invalid("The downloaded app failed validation or could not be installed. Nothing was replaced.")
         }
     }
-    private static func validateBundle(_ app: URL, version: ReleaseVersion) throws {
+    private static func validateBundle(_ app: URL, version: ReleaseVersion,
+                                       architecture: ReleaseArchitecture = .current) throws {
         let files = FileManager.default
         guard let walker = files.enumerator(at:app,includingPropertiesForKeys:[.isSymbolicLinkKey,.isRegularFileKey,.isDirectoryKey]) else {
             throw UpdateError.invalid("The installer contains no app.")
@@ -247,12 +248,9 @@ enum UpdateInstallation {
         }
         let binary = app.appendingPathComponent("Contents/MacOS/MacDuo")
         guard files.isExecutableFile(atPath:binary.path) else { throw UpdateError.invalid("The downloaded app is not executable.") }
-        #if arch(arm64)
-        let architecture = NSBundleExecutableArchitectureARM64
-        #else
-        let architecture = NSBundleExecutableArchitectureX86_64
-        #endif
-        guard Bundle(url:app)?.executableArchitectures?.contains(NSNumber(value:architecture)) == true else {
+        let executableArchitecture = architecture == .arm64
+            ? NSBundleExecutableArchitectureARM64 : NSBundleExecutableArchitectureX86_64
+        guard Bundle(url:app)?.executableArchitectures?.contains(NSNumber(value:executableArchitecture)) == true else {
             throw UpdateError.invalid("The downloaded app does not support this Mac’s processor.")
         }
         try command("/usr/bin/codesign",["--verify","--deep","--strict",app.path])
@@ -444,15 +442,19 @@ enum UpdateInstallation {
               !FileManager.default.fileExists(atPath:folder.path), let version = ReleaseVersion(version) else {
             throw UpdateError.invalid("Choose a new scratch directory outside Applications for package verification.")
         }
+        guard let architecture = ReleaseArchitecture(archiveName:archive.lastPathComponent) else {
+            throw UpdateError.invalid("Use the canonical Mac-Duo-mac.zip or Mac-Duo-Intel.zip archive name for package verification.")
+        }
         let archiveSize = try archive.resourceValues(forKeys:[.fileSizeKey]).fileSize ?? 0
         let manifestSize = try manifest.resourceValues(forKeys:[.fileSizeKey]).fileSize ?? 0
         guard archiveSize <= ReleaseUpdate.maximumArchiveBytes, manifestSize <= 16_384 else { throw UpdateError.invalid("Package verification input exceeds the download limits.") }
         let data = try Data(contentsOf:archive)
-        try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data(contentsOf:manifest))
+        try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data(contentsOf:manifest),architecture:architecture)
         try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:false,attributes:[.posixPermissions:0o700])
         do {
             try UpdateArchive.extract(data,into:folder)
-            try validateBundle(folder.appendingPathComponent("Mac Duo.app",isDirectory:true),version:version)
+            try validateBundle(folder.appendingPathComponent("Mac Duo.app",isDirectory:true),version:version,
+                               architecture:architecture)
         } catch { try? FileManager.default.removeItem(at:folder);throw error }
     }
 

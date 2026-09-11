@@ -2,7 +2,7 @@
 
 ## Build
 
-Use **Xcode 16 or newer / Swift 6** on a supported build host. The app itself targets **macOS 13 Ventura or newer** on Apple silicon; a compatible MacBook lid sensor is required for automatic following. A newer build SDK does not raise the app's deployment target.
+Use **Xcode 16 or newer / Swift 6** on a supported build host. The app itself targets **macOS 13 Ventura or newer** on Apple silicon and Intel; a compatible continuous lid-angle sensor is required for automatic following. A newer build SDK does not raise the app's deployment target.
 
 ```sh
 git clone https://github.com/DhananjayBhosale/MacDuo.git
@@ -16,6 +16,15 @@ The default build uses ad-hoc signing. For a stable Screen Recording identity ac
 ```sh
 MACDUO_SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" ./build.sh
 ```
+
+The default app remains a native ARM64 build for M-series Macs. Build the separately packaged Intel app explicitly:
+
+```sh
+./build.sh
+MACDUO_ARCH=x86_64 MACDUO_BUILD_DIR=.build-intel ./build.sh
+```
+
+The commands write to `build/Mac Duo.app` and `build-intel/Mac Duo.app` respectively, so one build cannot overwrite the other. Set `MACDUO_OUTPUT_DIR` only when a different destination is needed. Do not combine the slices for distribution. Keep the M-series downloads named `Mac-Duo.dmg` and `Mac-Duo-mac.zip`; use `Mac-Duo-Intel.dmg` and `Mac-Duo-Intel.zip` for Intel. Both are native builds and neither requires Rosetta.
 
 You can also store that identity in a local `signing-identity.txt`, which is ignored by Git. Keep using the same identity for updates. An ad-hoc signature changes with the executable, so macOS may require granting access again after a rebuild. No certificate, private key, signing identity file, or personal validation log is included in this repository.
 
@@ -39,6 +48,10 @@ swift build
 
 The render check uses generated artwork only; it does not capture the desktop. It verifies all six effects: pixel identity when open/reopened, black closure, opacity, blur, practical geometry, distinct intermediate frames, smooth onset, Reduce Motion, cache freshness and GPU timing. Add `--animation` to export generated closing/reopening frames for every effect. GPU measurements exclude capture and display composition. Physical lid sweeps, sustained energy use and platform lifecycle transitions still need testing on more hardware.
 
+## Version 0.1.14
+
+The normal packaged executable remains ARM64-only. A separate x86_64 preview build is produced without changing the renderer, UI or M-series runtime. The updater selects `Mac-Duo-mac.zip` on ARM64 and `Mac-Duo-Intel.zip` on Intel, while using the shared checksum manifest. The continuous sensor is undocumented and model-dependent: the intended Intel target is the 2019 16-inch MacBook Pro. Intel machines with only an open/closed clamshell switch correctly remain in the sensor-unavailable state. A physical Intel Mac is still required to verify HID reports, ScreenCaptureKit, Metal rendering and Screen Recording permission end to end.
+
 ## Version 0.1.13
 
 Ghost transforms a fixed keyboard-space viewer into the resting screen plane using the absolute reference angle. Projection references below 90° use an upright virtual plane to avoid placing the viewer behind the panel. The reference travels with the animated tilt and remains fixed throughout a clear transition; interrupted clears retarget both together. An exact critically damped tilt response smooths whole-degree HID reports while keeping the rendered panel within one degree of motion. The Metal uniform remains 48 bytes. Blur grows from zero at the hinge and uses a lower maximum radius.
@@ -61,7 +74,7 @@ The performance work was checked with generated images, resource-retirement/rebu
 
 ### Updates
 
-**Check for Updates** is user initiated. It reads the latest stable release from `DhananjayBhosale/MacDuo` on GitHub. Installation uses `Mac-Duo-mac.zip` and `Mac-Duo-SHA256SUMS.txt`, with download, archive and bundle validation before replacement. Keep these stable asset names in future releases. A writable installation folder is required; the updater does not request administrator access or bypass Gatekeeper. User preferences are preserved. Ad-hoc builds can require **Privacy & Security → Open Anyway** approval and reapproving Screen Recording. A helper startup acknowledgment prevents quitting into a failed installer. Relaunch acknowledgment matches the approved bundle identity, version and executable hash, including isolated macOS launch paths. The recovery dialog keeps the verified candidate and previous app safe while offering Open Privacy & Security, Try Opening Again, or Restore Previous. No security prompt is bypassed.
+**Check for Updates** is user initiated. It reads the latest stable release from `DhananjayBhosale/MacDuo` on GitHub. ARM64 installation uses `Mac-Duo-mac.zip`; x86_64 installation uses `Mac-Duo-Intel.zip`; both use `Mac-Duo-SHA256SUMS.txt`, with download, archive and bundle validation before replacement. Keep these stable asset names in future releases. A writable installation folder is required; the updater does not request administrator access or bypass Gatekeeper. User preferences are preserved. Ad-hoc builds can require **Privacy & Security → Open Anyway** approval and reapproving Screen Recording. A helper startup acknowledgment prevents quitting into a failed installer. Relaunch acknowledgment matches the approved bundle identity, version and executable hash, including isolated macOS launch paths. The recovery dialog keeps the verified candidate and previous app safe while offering Open Privacy & Security, Try Opening Again, or Restore Previous. No security prompt is bypassed.
 
 Update checks and downloads use HTTPS to GitHub. SHA-256 detects corrupt or mismatched downloads; an ad-hoc code signature does not prove publisher identity. Trust still depends on the official repository and GitHub HTTPS. There is no background update polling, telemetry or screen upload.
 
@@ -85,7 +98,7 @@ Mac Duo combines its own renderer and controls with a credited adaptation of the
 
 ## Localization
 
-User-facing text lives in `Sources/MacDuo/Resources/{en,zh-Hans,zh-Hant,ja}.lproj`. English source strings are the keys. `L10n` explicitly loads the packaged resource bundle inside an app and uses `Bundle.module` during SwiftPM development. Both SwiftUI and AppKit use the same lookup; missing keys fall back to English. Effect persistence identifiers remain unchanged.
+User-facing text lives in `Sources/MacDuo/Resources/{en,zh-Hans,zh-Hant,ja}.lproj`. English source strings are the keys. `L10n` explicitly loads the packaged resource bundle inside an app and falls back to `Bundle.main` during SwiftPM development so an absolute build path is not linked into release executables. Both SwiftUI and AppKit use the same lookup; missing keys fall back to English. Effect persistence identifiers remain unchanged.
 
 To add a language, copy the English `Localizable.strings` and `InfoPlist.strings` into a new `.lproj` folder, translate the values while preserving format placeholders, and add the language to `CFBundleLocalizations` in `build.sh` and the localization test language list. The packaging script copies the SwiftPM bundle and the localized privacy descriptions into the app before signing.
 

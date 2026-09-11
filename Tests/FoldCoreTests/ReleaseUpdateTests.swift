@@ -60,41 +60,56 @@ import zlib
 }
 
 private func release(_ tag: String = "v0.1.12", draft: Bool = false, prerelease: Bool = false,
-                     zipURL: String? = nil, size: Int = 2048, duplicate: Bool = false) throws -> Data {
+                     zipURL: String? = nil, size: Int = 2048, duplicate: Bool = false,
+                     includeIntel: Bool = true) throws -> Data {
     let prefix = "https://github.com/DhananjayBhosale/MacDuo/releases/download/\(tag)/"
-    let zip: [String:Any] = ["name":ReleaseUpdate.archiveName,"size":size,"browser_download_url":zipURL ?? prefix+ReleaseUpdate.archiveName]
+    let armName = ReleaseUpdate.archiveName(for:.arm64)
+    let intelName = ReleaseUpdate.archiveName(for:.x86_64)
+    let zip: [String:Any] = ["name":armName,"size":size,"browser_download_url":zipURL ?? prefix+armName]
+    let intel: [String:Any] = ["name":intelName,"size":size,"browser_download_url":prefix+intelName]
     var assets: [[String:Any]] = [zip,["name":ReleaseUpdate.checksumName,"size":160,"browser_download_url":prefix+ReleaseUpdate.checksumName]]
+    if includeIntel { assets.append(intel) }
     if duplicate { assets.append(zip) }
     return try JSONSerialization.data(withJSONObject:["tag_name":tag,"draft":draft,"prerelease":prerelease,"assets":assets])
 }
 
 @Test func onlyNewerStableOfficialReleaseAssetsAreSelected() throws {
-    let latest = try ReleaseUpdate.newerRelease(data:release(),installed:"0.1.11")
+    let latest = try ReleaseUpdate.newerRelease(data:release(),installed:"0.1.11",architecture:.arm64)
     #expect(latest?.tag == "v0.1.12")
-    #expect(try ReleaseUpdate.newerRelease(data:release(),installed:"0.1.12") == nil)
-    #expect(try ReleaseUpdate.newerRelease(data:release(),installed:"0.2.0") == nil)
-    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(draft:true),installed:"0.1.11") }
-    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(prerelease:true),installed:"0.1.11") }
+    let intel = try ReleaseUpdate.newerRelease(data:release(),installed:"0.1.11",architecture:.x86_64)
+    #expect(intel?.archive.lastPathComponent == "Mac-Duo-Intel.zip")
+    #expect(latest?.archive.lastPathComponent == "Mac-Duo-mac.zip")
+    #expect(try ReleaseUpdate.newerRelease(data:release(),installed:"0.1.12",architecture:.arm64) == nil)
+    #expect(try ReleaseUpdate.newerRelease(data:release(),installed:"0.2.0",architecture:.arm64) == nil)
+    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(draft:true),installed:"0.1.11",architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(prerelease:true),installed:"0.1.11",architecture:.arm64) }
     for url in ["http://github.com/DhananjayBhosale/MacDuo/releases/download/v0.1.12/Mac-Duo-mac.zip",
                 "https://github.com.evil.test/DhananjayBhosale/MacDuo/releases/download/v0.1.12/Mac-Duo-mac.zip",
                 "https://github.com/other/MacDuo/releases/download/v0.1.12/Mac-Duo-mac.zip",
                 "https://github.com/DhananjayBhosale/MacDuo/releases/download/v0.1.11/Mac-Duo-mac.zip",
                 "https://github.com/DhananjayBhosale/MacDuo/releases/download/v0.1.12/Mac-Duo-mac.zip?redirect=bad"] {
-        #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(zipURL:url),installed:"0.1.11") }
+        #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(zipURL:url),installed:"0.1.11",architecture:.arm64) }
     }
-    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(size:ReleaseUpdate.maximumArchiveBytes+1),installed:"0.1.11") }
-    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(duplicate:true),installed:"0.1.11") }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(size:ReleaseUpdate.maximumArchiveBytes+1),installed:"0.1.11",architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(duplicate:true),installed:"0.1.11",architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.newerRelease(data:release(includeIntel:false),installed:"0.1.11",architecture:.x86_64) }
 }
 
 @Test func checksumRequiresExactlyOneMatchingNamedArchive() throws {
     let data = Data("fixture archive".utf8)
     let hash = SHA256.hash(data:data).map { String(format:"%02x",$0) }.joined()
     let valid = Data("\(hash)  Mac-Duo-mac.zip\n".utf8)
-    try ReleaseUpdate.verifyChecksum(archive:data,manifest:valid)
-    try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data("\(hash) *Mac-Duo-mac.zip\n".utf8))
-    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:Data("tampered".utf8),manifest:valid) }
-    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:data,manifest:valid+valid) }
-    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data("\(hash)  Other.zip\n".utf8)) }
+    try ReleaseUpdate.verifyChecksum(archive:data,manifest:valid,architecture:.arm64)
+    try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data("\(hash) *Mac-Duo-mac.zip\n".utf8),architecture:.arm64)
+    let intel = Data("\(hash)  Mac-Duo-Intel.zip\n".utf8)
+    try ReleaseUpdate.verifyChecksum(archive:data,manifest:intel,architecture:.x86_64)
+    let combined = valid+intel
+    try ReleaseUpdate.verifyChecksum(archive:data,manifest:combined,architecture:.arm64)
+    try ReleaseUpdate.verifyChecksum(archive:data,manifest:combined,architecture:.x86_64)
+    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:data,manifest:intel,architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:Data("tampered".utf8),manifest:valid,architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:data,manifest:valid+valid,architecture:.arm64) }
+    #expect(throws: (any Error).self) { try ReleaseUpdate.verifyChecksum(archive:data,manifest:Data("\(hash)  Other.zip\n".utf8),architecture:.arm64) }
 }
 
 private struct ZipEntry {

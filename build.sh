@@ -2,8 +2,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 BUILD_DIR="${MACDUO_BUILD_DIR:-${LIDFLOW_BUILD_DIR:-.build}}"
-swift build -c release --scratch-path "$BUILD_DIR"
-BIN_DIR="$(swift build -c release --scratch-path "$BUILD_DIR" --show-bin-path)"
+BUILD_ARCH="${MACDUO_ARCH:-${LIDFLOW_ARCH:-arm64}}"
+case "$BUILD_ARCH" in
+  arm64) DEFAULT_OUTPUT_DIR="build" ;;
+  x86_64) DEFAULT_OUTPUT_DIR="build-intel" ;;
+  *) printf 'Unsupported build architecture: %s\n' "$BUILD_ARCH" >&2; exit 2 ;;
+esac
+OUTPUT_DIR="${MACDUO_OUTPUT_DIR:-$DEFAULT_OUTPUT_DIR}"
+swift build -c release --scratch-path "$BUILD_DIR" --arch "$BUILD_ARCH"
+BIN_DIR="$(swift build -c release --scratch-path "$BUILD_DIR" --arch "$BUILD_ARCH" --show-bin-path)"
 SIGNING_IDENTITY="${MACDUO_SIGNING_IDENTITY:-${LIDFLOW_SIGNING_IDENTITY:-}}"
 if [[ -z "$SIGNING_IDENTITY" ]]; then
   if [[ -f signing-identity.txt ]]; then
@@ -12,7 +19,8 @@ if [[ -z "$SIGNING_IDENTITY" ]]; then
     SIGNING_IDENTITY="-"
   fi
 fi
-APP="$PWD/build/Mac Duo.app"
+mkdir -p "$OUTPUT_DIR"
+APP="$(cd "$OUTPUT_DIR" && pwd)/Mac Duo.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/MacDuo" "$APP/Contents/MacOS/MacDuo"
 # Remove debug symbols containing local build paths before signing the app.
@@ -39,8 +47,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>MacDuo</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>MacDuo</string>
-<key>CFBundleShortVersionString</key><string>0.1.13</string>
-<key>CFBundleVersion</key><string>15</string>
+<key>CFBundleShortVersionString</key><string>0.1.14</string>
+<key>CFBundleVersion</key><string>16</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>

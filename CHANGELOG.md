@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14 · 11 September 2026
+
+- **Separate native Intel preview.** The normal Mac Duo build and downloads remain ARM64-only for M-series Macs. Independently packaged x86_64 downloads are available for Intel models that expose the continuous lid-angle HID sensor, notably the 2019 16-inch MacBook Pro. Older models with only an open/closed clamshell switch remain unsupported.
+- **Architecture-aware updates.** M-series Macs keep using `Mac-Duo-mac.zip`; Intel builds select `Mac-Duo-Intel.zip`. Neither architecture needs Rosetta to run Mac Duo.
+
+The Apple-silicon build was verified on an M4 Mac. Physical Intel hardware verification remains pending, so the Intel download is a preview.
+
 ## 0.1.13 · 11 September 2026
 
 - **Four interface languages.** Mac Duo now follows macOS in English, Simplified Chinese, Traditional Chinese or Japanese, with English fallback. Settings, menus, status messages, update dialogs and the Screen Recording description are localized.

@@ -8,7 +8,9 @@
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-333333)](#install)
 [![MIT](https://img.shields.io/badge/license-MIT-c65a16)](LICENSE)
 
-### [↓ Download Mac Duo](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo.dmg)
+### [↓ Download for Apple silicon](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo.dmg)
+
+[Intel preview download](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo-Intel.dmg) · Intended for the 2019 16-inch MacBook Pro; physical Intel verification is pending.
 
 [Website](https://macduo.dhananjaytech.app/) · [All releases & ZIP](https://github.com/DhananjayBhosale/MacDuo/releases) · [Changelog](CHANGELOG.md) · [Build from source](docs/DEVELOPMENT.md) · [Report an issue](https://github.com/DhananjayBhosale/MacDuo/issues)
 
@@ -31,15 +33,16 @@ Hold the lid still and the screen clears after **1–5 seconds**—**2 seconds**
 
 ## Install
 
-**Mac Duo 0.1.13 supports macOS 13 Ventura or newer**, with six effects including Ghost. A compatible lid sensor is required. Built for macOS 13 and tested on a newer M4 Mac; physical Ventura testing is still pending.
+**Mac Duo 0.1.14 supports macOS 13 Ventura or newer**, with six effects including Ghost. A compatible continuous lid-angle sensor is required. The native Apple-silicon build was tested on an M4 Mac; physical Ventura and Intel testing are still pending.
 
 > [!NOTE]
 > **MacBook compatibility · macOS 13+**<br>
 > **Expected to work:** MacBook Air with M2 or newer, and 14-/16-inch MacBook Pro with M1 Pro/Max or newer.<br>
-> **Unsupported:** M1 MacBook Air and 13-inch MacBook Pro with M1 or M2.<br>
+> **Intel preview:** 2019 16-inch MacBook Pro. This download compiles and packages natively for Intel, but still needs physical hardware verification.<br>
+> **Unsupported:** M1 MacBook Air, 13-inch MacBook Pro with M1 or M2, and Intel models that expose only an open/closed clamshell switch.<br>
 > Tested on an M4 MacBook Pro. Mac Duo checks for a compatible lid sensor; external displays are not animated.
 
-1. [Download **Mac-Duo.dmg**](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo.dmg), open it, and drag **Mac Duo** into **Applications**.
+1. Download [**Mac-Duo.dmg** for Apple silicon](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo.dmg) or [**Mac-Duo-Intel.dmg** for Intel](https://github.com/DhananjayBhosale/MacDuo/releases/latest/download/Mac-Duo-Intel.dmg), open it, and drag **Mac Duo** into **Applications**.
 2. Open **Mac Duo** from Applications. This release is **not notarized**, so macOS may initially block it with “cannot be opened” or “Apple could not verify” wording.
 3. After trying to open it, go to **System Settings → Privacy & Security**, scroll to **Security**, click **Open Anyway** for **Mac Duo**, then confirm **Open**. [Apple’s instructions](https://support.apple.com/102445).
 4. In Mac Duo, click **Enable Mac Duo** and allow **Screen Recording** when prompted. Reopen the app if macOS asks. Desktop frames stay in memory; nothing is recorded or uploaded.
@@ -48,7 +51,7 @@ Try **Replay** first—it works without Screen Recording permission. For manual 
 
 <details><summary><strong>Updating or using the ZIP instead</strong></summary>
 
-In Mac Duo, choose **Check for Updates…** from the header or menu bar, then **Install & Relaunch**. The app checks the official GitHub release and verifies the download before replacing itself. Checks run only when you ask. macOS may require **Privacy & Security → Open Anyway** for an update; the recovery dialog lets you retry or restore the previous app. Install the app in a writable Applications folder first.
+In Mac Duo, choose **Check for Updates…** from the header or menu bar, then **Install & Relaunch**. The app checks the official GitHub release, selects the native Apple-silicon or Intel ZIP, and verifies the download before replacing itself. Checks run only when you ask. macOS may require **Privacy & Security → Open Anyway** for an update; the recovery dialog lets you retry or restore the previous app. Install the app in a writable Applications folder first.
 
 For a manual update, quit Mac Duo before replacing the app in Applications. For the ZIP, unzip it and move **Mac Duo.app** into Applications, then follow steps 2–4 above. Development signatures may require granting Screen Recording again after an update. If permission appears enabled but capture fails, remove the old Mac Duo entry in Screen Recording settings, add the current app from Applications, and reopen it.
 
